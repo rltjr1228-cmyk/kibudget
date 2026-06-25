@@ -39,7 +39,9 @@ body{max-width:480px;margin:0 auto;min-height:100vh;padding:0 0 90px;}
 header{padding:28px 22px 18px;}
 .eyebrow{font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:var(--text3);margin-bottom:6px;}
 .month-nav{display:flex;align-items:center;justify-content:space-between;}
-.month-nav h1{font-size:23px;font-weight:600;letter-spacing:-0.01em;}
+.month-nav h1{font-size:23px;font-weight:600;letter-spacing:-0.01em;display:inline-block;}
+.fut-badge{display:none;margin-left:8px;font-size:11px;font-weight:600;padding:2px 7px;border-radius:6px;background:rgba(255,176,32,0.15);color:var(--amber);vertical-align:middle;}
+body.future-month .fut-badge{display:inline-block;}
 .month-btns{display:flex;gap:8px;}
 .mbtn{width:36px;height:36px;border-radius:50%;border:1px solid var(--line2);background:transparent;color:var(--text2);font-size:17px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:.15s;}
 .mbtn:active{transform:scale(.92);background:var(--surface2);}
@@ -141,7 +143,7 @@ header{padding:28px 22px 18px;}
 <header>
   <div class="eyebrow">나의 가계부</div>
   <div class="month-nav">
-    <h1 class="display" id="monthTitle">—</h1>
+    <div><h1 class="display" id="monthTitle">—</h1><span id="futBadge" class="fut-badge">예정</span></div>
     <div class="month-btns">
       <button class="mbtn" id="prevM">‹</button>
       <button class="mbtn" id="nextM">›</button>
@@ -191,7 +193,7 @@ header{padding:28px 22px 18px;}
       <span class="debt-of">남음 / ₩6,900,000</span>
     </div>
     <div class="debt-track"><div class="debt-fill" id="debtFill"></div></div>
-    <div class="debt-sub" id="debtSub">현대카드 19.8% · 카카오 10.5% 먼저 정리해요</div>
+    <div class="debt-sub" id="debtSub">카카오뱅크 마통 · 현대카드 19.8% 먼저 정리해요</div>
   </div>
 </div>
 
@@ -206,7 +208,7 @@ header{padding:28px 22px 18px;}
   <div class="repaycard" id="repayCard">
     <div class="repay-row"><span class="repay-k">먼저 떼고 남는 생활비</span><span class="repay-v" id="repayReserve">₩0</span></div>
     <div class="repay-row big"><span class="repay-k">빚에 넣을 금액</span><span class="repay-v" id="repayAmt">₩0</span></div>
-    <button class="repay-btn" id="applyRepay">이 금액 현대카드에 갚기</button>
+    <button class="repay-btn" id="applyRepay">이 금액 카카오 마통에 갚기</button>
   </div>
   <div class="note">월급 들어온 날, 이 금액을 바로 빼서 빚에 넣고 <b>남은 돈으로만</b> 한 달을 살아요. 안 보이는 돈은 안 쓰게 돼요.</div>
 </div>
@@ -304,10 +306,10 @@ function renderDebt(){
   document.getElementById('debtFill').style.width=pct+'%';
   if(cur_<=0){
     document.getElementById('debtSub').textContent='🎉 고금리 빚 정리 완료! 이제 저축·투자 단계예요';
-  }else if(state.debt.hyundai>0){
-    document.getElementById('debtSub').textContent='현대카드 19.8% 먼저 정리 중 · '+won(paid)+' 갚았어요';
+  }else if(state.debt.kakao>0){
+    document.getElementById('debtSub').textContent='카카오뱅크 마통 먼저 정리 중 · '+won(paid)+' 갚았어요';
   }else{
-    document.getElementById('debtSub').textContent='카카오 10.5% 정리 중 · '+won(paid)+' 갚았어요';
+    document.getElementById('debtSub').textContent='현대카드 19.8% 정리 중 · '+won(paid)+' 갚았어요';
   }
 }
 
@@ -323,7 +325,7 @@ function renderRepay(){
   document.getElementById('repayAmt').textContent=won(take);
   const btn=document.getElementById('applyRepay');
   btn.disabled=(take<=0||debtTotal()<=0);
-  btn.textContent=debtTotal()<=0?'빚 정리 완료':(take<=0?'뗄 금액을 입력하세요':'이 금액 현대카드에 갚기');
+  btn.textContent=debtTotal()<=0?'빚 정리 완료':(take<=0?'뗄 금액을 입력하세요':'이 금액 카카오 마통에 갚기');
 }
 
 function renderMonth(){
@@ -332,8 +334,10 @@ function renderMonth(){
   document.getElementById('inKB').value=d.kb??'';
   document.getElementById('inHD').value=d.hd??'';
   document.getElementById('inCash').value=d.cash??'';
-  const nowM=ym(new Date());
-  document.getElementById('nextM').disabled=(cur>=nowM);
+  const maxM='2026-12';
+  document.getElementById('nextM').disabled=(cur>=maxM);
+  const future=cur>ym(new Date());
+  document.body.classList.toggle('future-month',future);
   document.getElementById('stSalary').textContent=won(state.fixed.salary);
   calc();
   renderRepay();
@@ -399,9 +403,9 @@ document.getElementById('applyRepay').addEventListener('click',()=>{
   const take=parseFloat(document.getElementById('inCash').value)||0;
   if(take<=0||debtTotal()<=0)return;
   let r=take;
-  const fromH=Math.min(state.debt.hyundai,r);
-  state.debt.hyundai-=fromH;r-=fromH;
-  if(r>0){state.debt.kakao=Math.max(0,state.debt.kakao-r);}
+  const fromK=Math.min(state.debt.kakao,r);
+  state.debt.kakao-=fromK;r-=fromK;
+  if(r>0){state.debt.hyundai=Math.max(0,state.debt.hyundai-r);}
   save(state);
   renderDebt();renderRepay();
   const b=document.getElementById('applyRepay');
@@ -413,7 +417,7 @@ document.getElementById('prevM').addEventListener('click',()=>{
   const[y,m]=cur.split('-').map(Number);const d=new Date(y,m-2,1);cur=ym(d);renderMonth();
 });
 document.getElementById('nextM').addEventListener('click',()=>{
-  if(cur>=ym(new Date()))return;
+  if(cur>='2026-12')return;
   const[y,m]=cur.split('-').map(Number);const d=new Date(y,m,1);cur=ym(d);renderMonth();
 });
 
